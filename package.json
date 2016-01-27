@@ -1,0 +1,26 @@
+{
+	"title": "CookiesOK",
+	"name": "cookiesok",
+	"version": "5.0.0",
+	"description": "CookiesOK aims to automatically accept cookies on websites that are affected by the recent (26-02-2011) EU cookie laws.",
+	"main": "main.js",
+	"author": "Nick Sulkers",
+	"homepage": "http://cookiesok.com",
+	"engines": {
+		"firefox": ">=38.0a1",
+		"fennec": ">=38.0a1"
+	},
+	"license": "GPL-3.0",
+	"permissions": {
+		"unsafe-content-script": true
+	},
+	"preferences": [
+		{
+			"name": "contextmenu",
+			"title": "Enable report context menu item",
+			"description": "If enabled CookiesOK will add an option to your context menu (right click menu) which allows you to report websites that are not (yet) handled by CookiesOK.",
+			"type": "bool",
+			"value": true
+		}
+	]
+}
