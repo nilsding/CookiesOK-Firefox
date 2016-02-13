@@ -16,9 +16,8 @@
 	},
 	"preferences": [
 		{
+			"title": "contextmenu",
 			"name": "contextmenu",
-			"title": "Enable report context menu item",
-			"description": "If enabled CookiesOK will add an option to your context menu (right click menu) which allows you to report websites that are not (yet) handled by CookiesOK.",
 			"type": "bool",
 			"value": true
 		}
