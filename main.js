@@ -4,8 +4,10 @@ var pageMod = require("sdk/page-mod");
 var ss = require("sdk/simple-storage");
 var sp = require("sdk/simple-prefs");
 var request = require("sdk/request").Request;
+var tabs = require('sdk/tabs');
 var _ = require("sdk/l10n").get;
 
+var paused = false;
 var database = {};
 
 var reportContextMenuItem;
@@ -21,7 +23,7 @@ function resetContextMenuItem(){
 			contentScript: 'self.on("click", function () { self.postMessage(location.href); });',
 			onMessage: function(url){
 				url = url.split(":").join("_-_"); //part 1/2 of ugly workaround, if the url contains a ":" (encoded %5A) firefox will give an error upon loading it. Unsure why, bug?
-				require("sdk/tabs").open(data.url("pages/report.html?url=" + encodeURIComponent(url)));
+				tabs.open(data.url("pages/report.html?url=" + encodeURIComponent(url)));
 			}
 		});
 	}
@@ -40,14 +42,55 @@ function downloadDatabase(callback) {
 		url: "https://cookiesok.com/5/database",
 		onComplete: function (response) {
 			var result = JSON.parse(response.text);
-			if(result.success) {
-				database.websites = result.data;
-				database.updated = new Date();
-				callback && callback();
-			}
+			callback(result.success, result.data);
 		}
 	}).get();
 }
+
+var panels = require("sdk/panel");
+var panel = panels.Panel({
+	width: 175,
+	height:180,
+	contentURL: self.data.url("pages/action.html"),
+	contentScriptFile: self.data.url('pages/action.js'),
+	onHide: function(){
+		browserAction.state('window', {checked: false});
+	}
+});
+panel.port.on('getPaused', function(){
+	panel.port.emit('getPaused', paused);
+});
+panel.port.on('setPause', function(p){
+	paused = p;
+	var g = paused ? 'grey' : '';
+	browserAction.icon = {
+		"16": "./images/icon16" + g + ".png",
+		"32": "./images/icon32" + g + ".png"
+	};
+});
+panel.port.on('reportWebsite', function(){
+	var url = tabs.activeTab.url.split(":").join("_-_"); //part 1/2 of ugly workaround, if the url contains a ":" (encoded %5A) firefox will give an error upon loading it. Unsure why, bug?
+	tabs.open(data.url("pages/report.html?url=" + encodeURIComponent(url)));
+});
+
+
+var { ToggleButton } = require("sdk/ui/button/toggle");
+var browserAction = ToggleButton({
+	id: "browserAction",
+	label: "CookiesOK",
+	icon: {
+		"16": "./images/icon16.png",
+		"32": "./images/icon32.png"
+	},
+	onChange: function(state) {
+		if(state.checked){
+			panel.show({
+				position: browserAction
+			});
+		}else
+			browserAction.state('window', {checked: false});
+	}
+});
 
 function databaseReady(){
 	pageMod.PageMod({
@@ -60,6 +103,10 @@ function databaseReady(){
 		},
 		onAttach: function(worker){
 			worker.port.on('getDomainOrders', function(hostname){
+				if(paused){
+					worker.port.emit('getDomainOrders', {success: false});
+					return;
+				}
 				if(hostname.indexOf('www.') === 0)
 					hostname = hostname.substr(4);
 
@@ -113,9 +160,16 @@ sp.on("", function(){
 });
 resetContextMenuItem();
 
-if (!ss.storage.database || isTooOld(ss.storage.database.updated))
-	downloadDatabase(databaseReady);
-else{
+if (!ss.storage.database || isTooOld(ss.storage.database.updated)){
+	downloadDatabase(function(success, data){
+		if(success){
+			database.websites = data;
+			database.updated = new Date();
+		}else
+			database = ss.storage.database;
+		databaseReady();
+	});
+}else{
 	database = ss.storage.database;
 	databaseReady();
 }

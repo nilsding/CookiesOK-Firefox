@@ -1,43 +1,32 @@
-(function () {
+(function(){
 	var version = self.version;
 
 	var retryTimeout = 500;
 	var attemptsLimit = 10;
 
-	function log(obj) {
-		//console.log(obj);
-	}
-
-	function performOrder(orders, attempt) {
-		if (!attempt)
+	function performOrder(orders, attempt){
+		if(!attempt)
 			attempt = 1;
 
-		log('performOrder, attempt nr.: ' + attempt + '');
-
 		var frames = orders.target.split("->");
-		log('Searching target DOM: document.querySelector("' + frames[0] + '")');
 		var target = document.querySelector(frames[0]);
 
-		for (var i = 1; target && i < frames.length; ++i) {
-			try {
-				log('.querySelector("' + frames[i] + '")');
+		for(var i = 1; target && i < frames.length; ++i)
+			try{
 				target = target.contentWindow.document.querySelector(frames[i])
-			} catch (ex) {
+			}catch(ex){
 				target = null;
 			}
-		}
 
-		if (!target) {
-			if (attempt < attemptsLimit)
+		if(!target){
+			if(attempt < attemptsLimit)
 				setTimeout(performOrder, retryTimeout, orders, attempt + 1);
 			return;
 		}
 
-		log('target found! Performing ' + orders.action);
-		switch (orders.action) {
+		switch(orders.action){
 			case 'hide':
 				target.style.display = 'none';
-				target.style.visibility = 'hidden';
 				break;
 			case 'remove':
 				target.parentNode.removeChild(target);
@@ -49,33 +38,33 @@
 	}
 
 	//Always Attempt to execute the CookiesOK method, remove from source after execution
-	log('Attempting execution of JS function CookiesOK("' + version + '")');
+	//this allows websites to recognize CookiesOK and assume consent
 	var script = document.createElement('script');
 	script.innerHTML = 'if(window.CookiesOK) window.CookiesOK("' + version + '");';
 	var head = document.getElementsByTagName("head")[0];
 	head.appendChild(script);
-	setTimeout(function () {
+	setTimeout(function(){
 		head.removeChild(script);
 	}, 15);
 
 	//retrieve database from background
-	log('Looking up ' + location.hostname + ' in database');
-	self.port.emit("getDomainOrders", location.hostname);
-	self.port.on("getDomainOrders", function(result) {
-		log(result);
-		if (!result.success)
+	self.port.on("getDomainOrders", function(result){
+		if(!result.success)
 			return;
 
 		var orders = result.orders;
-		if (orders) {
-			log("Orders found...")
-			if (orders.action)
+
+		if(orders){
+			if(orders.action)
 				orders = [orders];
 
-			for (var i in orders)
+			for(var i in orders)
 				performOrder(orders[i]);
-		} else {
-			log("No orders found...")
 		}
+
+		var hideStyles = document.getElementsByClassName('CookiesOK-hide-style');
+		for(var i=0; i<hideStyles.length; ++i)
+			hideStyles[i].parentNode.removeChild(hideStyles[i]);
 	});
+	self.port.emit("getDomainOrders", location.hostname);
 })();
