@@ -2,7 +2,7 @@
 	"id": "jid0-UgB5JNMPWHIRM4dcAe76c7EcVis@jetpack",
 	"title": "CookiesOK",
 	"name": "cookiesok",
-	"version": "5.0.0",
+	"version": "5.1.0",
 	"description": "CookiesOK aims to automatically accept cookies on websites that are affected by the recent (26-02-2011) EU cookie laws.",
 	"main": "main.js",
 	"author": "Nick Sulkers",
