@@ -10,7 +10,6 @@
 })();
 
 self.port.on("getDomainOrders", function(result){
-	console.log('a');
 	if(!result.success)
 		return;
 

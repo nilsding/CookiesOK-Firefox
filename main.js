@@ -73,7 +73,6 @@ panel.port.on('reportWebsite', function(){
 	tabs.open(data.url("pages/report.html?url=" + encodeURIComponent(url)));
 });
 
-
 var { ToggleButton } = require("sdk/ui/button/toggle");
 var browserAction = ToggleButton({
 	id: "browserAction",
@@ -92,45 +91,46 @@ var browserAction = ToggleButton({
 	}
 });
 
+function contentScriptsOnAttach(worker){
+	worker.port.on('getDomainOrders', function(hostname){
+		if(paused){
+			worker.port.emit('getDomainOrders', {success: false});
+			return;
+		}
+		if(hostname.indexOf('www.') === 0)
+			hostname = hostname.substr(4);
+
+		var orders = database.websites[hostname];
+		if(!orders && hostname.match('.')){
+			var tmpHostname = hostname.split(".");
+			tmpHostname[0] = '*';
+			tmpHostname = tmpHostname.join('.');
+			orders = database.websites[tmpHostname];
+		}
+
+		if(orders)
+			worker.port.emit('getDomainOrders', {success: true, orders: orders});
+		else
+			worker.port.emit('getDomainOrders', {success: false});
+	});
+}
+
 function databaseReady(){
 	pageMod.PageMod({
 		include: "*",
-		contentScriptFile: [
-			data.url("scripts/cookiesok.js")
-		],
+		contentScriptFile: data.url("scripts/cookiesok.js"),
 		contentScriptOptions: {
 			version: self.version
 		},
-		onAttach: function(worker){
-			worker.port.on('getDomainOrders', function(hostname){
-				if(paused){
-					worker.port.emit('getDomainOrders', {success: false});
-					return;
-				}
-				if(hostname.indexOf('www.') === 0)
-					hostname = hostname.substr(4);
-
-				var orders = database.websites[hostname];
-				if(!orders && hostname.match('.')){
-					var tmpHostname = hostname.split(".");
-					tmpHostname[0] = '*';
-					tmpHostname = tmpHostname.join('.');
-					orders = database.websites[tmpHostname];
-				}
-
-				if(orders)
-					worker.port.emit('getDomainOrders', {success: true, orders: orders});
-				else
-					worker.port.emit('getDomainOrders', {success: false});
-			});
-		}
+		onAttach: contentScriptsOnAttach
 	});
 }
 
 pageMod.PageMod({
 	include: "*",
 	contentScriptFile: data.url("scripts/pre.js"),
-	contentScriptWhen: "start"
+	contentScriptWhen: "start",
+	onAttach: contentScriptsOnAttach
 });
 
 var {Cc, Ci} = require("chrome");
