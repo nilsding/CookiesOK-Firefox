@@ -60,6 +60,9 @@
 
 			for(var i in orders)
 				performOrder(orders[i]);
+		}else{
+			var a = document.getElementsByClassName('CookiesOK');
+			a.length && a[0].click();
 		}
 
 		var hideStyles = document.getElementsByClassName('CookiesOK-hide-style');
